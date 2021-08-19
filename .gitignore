@@ -2,3 +2,6 @@ venv/*
 dist/*
 build/*
 *.swp
+.idea/*
+ipv4tree.egg-info/*
+ipv4tree/__pycache__/*
