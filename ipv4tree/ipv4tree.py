@@ -7,29 +7,33 @@ class IPv4TreeNode(Iterable):
     def __init__(self, key: Union[int, str],
                  prefixlen: int,
                  size: int = 1,
-                 parent: 'IPv4TreeNode' = None,
+                 parent: Union['IPv4TreeNode', None] = None,
                  islast: bool = False):
         if parent is not None:
             parent.new_child(key, self)
         self._parent = parent
         self._children = [None, None]
         self._prefixlen = prefixlen
-        self._prefix = "".join([parent.prefix(), str(key)]) if parent is not None else str(key)
+        self._prefix = "".join([parent.prefix, str(key)]) if parent is not None else str(key)
         self._size = size
         self._islast = islast
 
+    @property
     def parent(self) -> 'IPv4TreeNode':
         return self._parent
 
+    @property
     def prefix(self) -> str:
         return self._prefix
 
+    @property
     def prefixlen(self) -> int:
         return self._prefixlen
 
     def child(self, key: Union[int, str]) -> Union['IPv4TreeNode', None]:
         return self._children[int(key)]
 
+    @property
     def children(self) -> list:
         return self._children
 
@@ -50,6 +54,9 @@ class IPv4TreeNode(Iterable):
 
     def __repr__(self) -> str:
         return str(self)
+
+    def true_last_node(self):
+        return self._children[0] is None and self._children[1] is None
 
     def aggregate(self, fullness: Union[int, float]) -> None:
         if self.fullness() >= fullness:
@@ -81,9 +88,11 @@ class IPv4TreeNode(Iterable):
     def network_address(self) -> IPv4Address:
         return IPv4Address(str(self).split('/')[0])
 
+    @property
     def size(self) -> int:
         return self._size
 
+    @property
     def islast(self) -> bool:
         return self._islast
 
@@ -98,7 +107,7 @@ class IPv4Tree(Collection):
 
     def _insert_node(self, prev: IPv4TreeNode, key: Union[int, str], size: int = 1, **kwargs) -> IPv4TreeNode:
         node = IPv4TreeNode(key=key,
-                            prefixlen=prev.prefixlen() + 1,
+                            prefixlen=prev.prefixlen + 1,
                             size=size,
                             parent=prev)
         self._nodes += 1
@@ -106,24 +115,39 @@ class IPv4Tree(Collection):
 
     def delete(self, ip: Union[str, int, IPv4Address, IPv4Network]) -> None:
         net = IPv4Network(ip)
-        intree = net in self
-        if not intree:
-            return
+        if not self.intree(ip):
+            raise ValueError('Network {} not in tree'.format(str(net)))
 
-        node = self[ip]
-        size = node.size()
+        size = net.num_addresses
         node = self._root
         prev = node
+        in_last = False
         for n in _get_binary_path_from_ipv4_addr(net):
-            node.update(-1, -size)
             prev = node
             node = prev.child(n)
+            inv_key = '1' if n == '0' else '0'
+            inv_node = prev.child(inv_key)
+            if prev.islast and not in_last:
+                in_last = True
 
-            if node.prefixlen() == net.prefixlen:
+            if node == None:
+                node = self._insert_node(prev, n, 0)
+
+            if inv_node == None:
+                inv_node = self._insert_node(prev, inv_key, 0)
+                inv_node._islast = in_last
+
+            prev._islast = False
+            if node.prefixlen == net.prefixlen:
                 break
 
         prev.new_child(n, None)
-        self._nodes_map.pop(net, None)
+        if prev.true_last_node():
+            prev._islast = True
+
+        while prev is not None:
+            prev.update(-1, -size)
+            prev = prev.parent
 
     def intree(self, ip: Union[str, int, IPv4Address, IPv4Network]) -> bool:
         ip = IPv4Network(ip)
@@ -136,7 +160,7 @@ class IPv4Tree(Collection):
             node = prev.child(n)
             if node is None:
                 return False
-            if node.islast() or node.prefixlen() == ip.prefixlen:
+            if node.islast or node.prefixlen == ip.prefixlen:
                 break
         return True
 
@@ -157,26 +181,26 @@ class IPv4Tree(Collection):
                 node = self._insert_node(prev, n, size, **kwargs)
                 was_insert = True
             else:
-                node.update(node.prefixlen(), size)
+                node.update(node.prefixlen, size)
 
-            if node.islast():
+            if node.islast:
                 # try insert for subnetwork of exist in tree
                 break
 
-            if node.prefixlen() == ip.prefixlen:
+            if node.prefixlen == ip.prefixlen:
                 # try insert for supernetwork?
                 break
 
         node._islast = True
         if not was_insert:
-            if node.prefixlen() != ip.prefixlen:
+            if node.prefixlen != ip.prefixlen:
                 # is supernet
                 excess = size
             else:
-                excess = node.size() - size
+                excess = node.size - size
             while node is not None:
                 node.update(-1, -excess)
-                node = node.parent()
+                node = node.parent
         else:
             # new node in last level
             self._nodes_map[ip] = node
@@ -188,14 +212,14 @@ class IPv4Tree(Collection):
         return iter(self._root)
 
     def __len__(self) -> int:
-        return self._root.size()
+        return self._root.size
 
     def __getitem__(self, ipv4: Union[str, int, IPv4Address, IPv4Network]) -> IPv4TreeNode:
         net = IPv4Network(ipv4)
         node = self._root
         for n in _get_binary_path_from_ipv4_addr(net):
             node = node.child(n)
-            if node is None or node.prefixlen() == net.prefixlen:
+            if node is None or node.prefixlen == net.prefixlen:
                 break
         return node
 
@@ -208,14 +232,14 @@ class IPv4Tree(Collection):
         Default values undo 'aggregate' method
         """
         for node in self:
-            if node.prefixlen() < prefixlen:
+            if node.prefixlen < prefixlen:
                 node._islast = islast
 
     def __repr__(self) -> str:
         prefixlens = {}
         last_nodes = 0
         for node in self:
-            prefixlen = str(node.prefixlen())
+            prefixlen = str(node.prefixlen)
             if prefixlen not in prefixlens.keys():
                 prefixlens[prefixlen] = 1
             else:
@@ -224,7 +248,7 @@ class IPv4Tree(Collection):
                 last_nodes += 1
         return str(prefixlens) + "\nTotal nodes: {}\nSize: {}" \
                                  "\nLast nodes: {}".format(self._nodes,
-                                                           self._root.size(),
+                                                           self._root.size,
                                                            last_nodes)
 
 
