@@ -115,6 +115,10 @@ class IPv4Tree(Collection):
 
     def delete(self, ip: Union[str, int, IPv4Address, IPv4Network]) -> None:
         net = IPv4Network(ip)
+        if not self.intree(ip):
+            raise ValueError('Network {} not in tree'.format(str(net)))
+
+        size = net.num_addresses
         node = self._root
         prev = node
         in_last = False
@@ -140,6 +144,10 @@ class IPv4Tree(Collection):
         prev.new_child(n, None)
         if prev.true_last_node():
             prev._islast = True
+
+        while prev is not None:
+            prev.update(-1, -size)
+            prev = prev.parent
 
     def intree(self, ip: Union[str, int, IPv4Address, IPv4Network]) -> bool:
         ip = IPv4Network(ip)

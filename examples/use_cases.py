@@ -8,11 +8,6 @@ tree.insert('1.1.1.3')
 tree.insert('1.1.1.4')
 tree.insert('1.1.1.5')
 tree.insert('1.1.1.6')
-# Show nodes:
-print('Common everybody:')
-for node in tree:
-    print(node)
-
 
 # Aggregate to network with rate 1.0:
 tree.aggregate(1.0)
@@ -20,13 +15,6 @@ print('Only full networks:')
 for node in tree:
     if node.islast:
         print(str(node))
-
-# Aggregate to network with rate 0.7:
-print('Networks with >0.7 fullness rate:')
-tree.aggregate(0.7)
-for node in tree:
-    if node.islast:
-        print(str(node), 'fullness rate', node.fullness())
 
 tree = IPv4Tree()
 print('insert 1.1.1.0/24')
@@ -36,22 +24,15 @@ for node in tree:
         print(node)
 print('delete 1.1.1.2/32')
 tree.delete('1.1.1.2/32')
-print('delete 1.1.1.12/32')
-tree.delete('1.1.1.12/32')
-print('delete 1.1.1.160/31')
-tree.delete('1.1.1.160/31')
+tree.insert('1.1.0.0/24')
+tree.delete('1.1.0.2/32')
+tree.aggregate(1)
 for node in tree:
     if node.islast:
         print(node)
 
 print('insert 1.1.1.2/32')
 tree.insert('1.1.1.2/32')
-print('insert 1.1.1.12/32')
-tree.insert('1.1.1.12/32')
-'''
-print('insert 1.1.1.160/31')
-tree.insert('1.1.1.160/31')
-'''
 tree.aggregate(1)
 for node in tree:
     if node.islast:
