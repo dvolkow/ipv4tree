@@ -8,7 +8,7 @@ setup(
     version=VERSION,
     packages=['ipv4tree'],
     install_requires=['ipaddress'],
-    url='nope',
+    url='https://github.com/dvolkow/ipv4tree',
     license='GPLv3',
     author='Daniel Wolkow',
     author_email='volkov12@rambler.ru',
