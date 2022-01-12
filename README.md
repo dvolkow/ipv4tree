@@ -65,3 +65,23 @@ Only full networks:
 Networks with >0.7 fullness rate:
 1.1.1.0/29 fullness rate 0.75
 ```
+
+# Get supernet for custom IPv4 address:
+
+```python
+tree = IPv4Tree()
+tree.insert('10.0.0.0/24')
+
+supernet_node = tree.supernet('10.0.0.12')
+print(supernet_node)
+
+supernet_node = tree.supernet('10.1.0.12')
+print(supernet_node)
+```
+
+Output:
+
+```
+10.0.0.0/24
+None
+```
