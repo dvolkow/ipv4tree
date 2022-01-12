@@ -85,3 +85,22 @@ Output:
 10.0.0.0/24
 None
 ```
+
+# Custom node info:
+
+```python
+tree = IPv4Tree()
+
+tree.insert('10.0.0.0/24', info={'country': 'RU'})
+node = tree.supernet('10.0.0.34')
+
+print(node)
+print(node.info)
+```
+
+Output:
+
+```
+10.0.0.0/24
+{'country': 'RU'}
+```

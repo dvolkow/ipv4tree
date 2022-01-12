@@ -1,6 +1,6 @@
 from collections.abc import Collection, Iterable
 from ipaddress import IPv4Address, IPv4Network
-from typing import Union, Optional
+from typing import Union, Optional, Dict
 
 
 class IPv4TreeNode(Iterable):
@@ -12,7 +12,8 @@ class IPv4TreeNode(Iterable):
                  prefixlen: int,
                  size: int = 1,
                  parent: Union['IPv4TreeNode', None] = None,
-                 islast: bool = False):
+                 islast: bool = False,
+                 info: Optional[Dict] = None):
         if parent is not None:
             parent.new_child(key, self)
         self._parent = parent
@@ -21,10 +22,17 @@ class IPv4TreeNode(Iterable):
         self._prefix = "".join([parent.prefix, str(key)]) if parent is not None else str(key)
         self._size = size
         self._islast = islast
+        self._info = info
 
     @property
     def parent(self) -> 'IPv4TreeNode':
         return self._parent
+
+    @property
+    def info(self) -> Optional[Dict]:
+        if self._islast:
+            return self._info
+        return None
 
     @property
     def prefix(self) -> str:
@@ -126,7 +134,8 @@ class IPv4Tree(Collection):
         node = IPv4TreeNode(key=key,
                             prefixlen=prev.prefixlen + 1,
                             size=size,
-                            parent=prev)
+                            parent=prev,
+                            **kwargs)
         self._nodes += 1
         return node
 
