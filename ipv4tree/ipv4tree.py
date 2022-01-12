@@ -1,9 +1,13 @@
 from collections.abc import Collection, Iterable
 from ipaddress import IPv4Address, IPv4Network
-from typing import Union
+from typing import Union, Optional
 
 
 class IPv4TreeNode(Iterable):
+    """
+    Unit for IPv4Tree structure.
+    """
+
     def __init__(self, key: Union[int, str],
                  prefixlen: int,
                  size: int = 1,
@@ -46,6 +50,10 @@ class IPv4TreeNode(Iterable):
             self._islast = True
 
     def fullness(self) -> float:
+        """
+        Get fullness rate for current node.
+        :return: fullness rate
+        """
         if self._prefixlen == 32:
             return 1.0
         if self._prefixlen == 31:
@@ -59,6 +67,11 @@ class IPv4TreeNode(Iterable):
         return self._children[0] is None and self._children[1] is None
 
     def aggregate(self, fullness: Union[int, float]) -> None:
+        """
+        Aggregate node: set last if fullness greater threshold.
+
+        :param fullness: rate in (0, 1] interval
+        """
         if self.fullness() >= fullness:
             self._islast = True
 
@@ -98,6 +111,10 @@ class IPv4TreeNode(Iterable):
 
 
 class IPv4Tree(Collection):
+    """
+    Prefix tree for log(N) search IPv4 addresses and networks, and fast checks intree state.
+    """
+
     def __init__(self) -> 'IPv4Tree':
         self._root = IPv4TreeNode(key=0,
                                   prefixlen=0,
@@ -114,6 +131,10 @@ class IPv4Tree(Collection):
         return node
 
     def delete(self, ip: Union[str, int, IPv4Address, IPv4Network]) -> None:
+        """
+        Delete IPv4 address or network from tree
+        :param ip: IPv4 address or network
+        """
         net = IPv4Network(ip)
         if not self.intree(ip):
             raise ValueError('Network {} not in tree'.format(str(net)))
@@ -150,6 +171,12 @@ class IPv4Tree(Collection):
             prev = prev.parent
 
     def intree(self, ip: Union[str, int, IPv4Address, IPv4Network]) -> bool:
+        """
+        Check address in tree.
+
+        :param ip: IPv4 address or network
+        :return: True if address or network exist in tree
+        """
         ip = IPv4Network(ip)
         intree = ip in self
         if intree:
@@ -164,7 +191,31 @@ class IPv4Tree(Collection):
                 break
         return True
 
+    def supernet(self, ip: Union[str, IPv4Address]) -> Optional[IPv4TreeNode]:
+        """
+        Return supernet for custom IPv4 address from IPv4Tree structure.
+
+        :param ip: IPv4 Address, string or IPv4Address type
+        :return: IPv4TreeNode or None if not exist in tree
+        """
+        ip = IPv4Network(ip)
+        node = self._root
+        for n in _get_binary_path_from_ipv4_addr(ip):
+            prev = node
+            node = prev.child(n)
+            if node is None:
+                return None
+            if node.islast or node.prefixlen == ip.prefixlen:
+                break
+        return node
+
     def insert(self, ip: Union[str, int, IPv4Address, IPv4Network], **kwargs) -> None:
+        """
+        Insert IPv4 address or network in IPv4Tree structure.
+
+        :param ip: IPv4 address or network
+        :param kwargs: custom parameters for your nodes.
+        """
         ip = IPv4Network(ip)
         intree = ip in self
         if intree:
@@ -224,6 +275,11 @@ class IPv4Tree(Collection):
         return node
 
     def aggregate(self, fullness: Union[int, float]) -> None:
+        """
+        Aggregate networks by fullness rate.
+
+        :param fullness: float in (0, 1] interval.
+        """
         for node in self:
             node.aggregate(fullness)
 
@@ -244,7 +300,7 @@ class IPv4Tree(Collection):
                 prefixlens[prefixlen] = 1
             else:
                 prefixlens[prefixlen] += 1
-            if node.islast():
+            if node.islast:
                 last_nodes += 1
         return str(prefixlens) + "\nTotal nodes: {}\nSize: {}" \
                                  "\nLast nodes: {}".format(self._nodes,
