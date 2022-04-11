@@ -28,7 +28,7 @@ tree.insert('1.1.1.6')
 # Show nodes:
 print('Common everybody:')
 for node in tree:
-    if node.islast():
+    if node.islast:
         print(str(node))
 
 
@@ -36,14 +36,14 @@ for node in tree:
 tree.aggregate(1.0)
 print('Only full networks:')
 for node in tree:
-    if node.islast():
+    if node.islast:
         print(str(node))
 
 # Aggregate to network with rate 0.7:
 print('Networks with >0.7 fullness rate:')
 tree.aggregate(0.7)
 for node in tree:
-    if node.islast():
+    if node.islast:
         print(str(node), 'fullness rate', node.fullness())
 ```
 
