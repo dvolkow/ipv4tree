@@ -323,3 +323,81 @@ def _get_binary_path_from_ipv4_addr(ipv4: Union[IPv4Address, IPv4Network]):
     if isinstance(ipv4, IPv4Address):
         return "{0:032b}".format(int(ipv4))
     raise TypeError("bad type {}".format(type(ipv4)))
+
+
+class CIDRTree(IPv4Tree):
+    """
+    The prefix tree special for CIDR matching based on IPv4TRee.
+
+    Insert: ignore already existed node for insert in tree.
+    Supernet: search all last nodes and return node with largest prefixlen.
+    """
+
+    def insert(self, ip: Union[str, int, IPv4Address, IPv4Network], **kwargs) -> None:
+        """
+        Insert IPv4 address or network in IPv4Tree structure.
+        IMPORTANT! Insert are ignore exists networks in path!
+
+        :param ip: IPv4 address or network
+        :param kwargs: custom parameters for your nodes.
+        """
+        ip = IPv4Network(ip)
+        intree = ip in self
+        if intree:
+            return
+
+        size = ip.num_addresses
+        node = self._root
+        self._root.update(-1, size)
+        was_insert = False
+        for n in _get_binary_path_from_ipv4_addr(ip):
+            prev = node
+            node = prev.child(n)
+            if node is None:
+                node = self._insert_node(prev, n, size, **kwargs)
+                was_insert = True
+            else:
+                node.update(node.prefixlen, size)
+
+            if node.prefixlen == ip.prefixlen:
+                # try insert for supernetwork?
+                break
+
+        node._islast = True
+        if not was_insert:
+            if node.prefixlen != ip.prefixlen:
+                # is supernet
+                excess = size
+            else:
+                excess = node.size - size
+            while node is not None:
+                node.update(-1, -excess)
+                node = node.parent
+        else:
+            # new node in last level
+            self._nodes_map[ip] = node
+
+    def supernet(self, ip: Union[str, IPv4Address, IPv4Network]) -> Optional[IPv4TreeNode]:
+        """
+        Return supernet for custom IPv4 address from IPv4Tree structure.
+        IMPORTANT! Return subnet in tree with largest prefixlen!
+
+        :param ip: IPv4 Address, string or IPv4Address type
+        :return: IPv4TreeNode or None if not exist in tree
+        """
+        ip = IPv4Network(ip)
+        node = self._root
+
+        last_nodes = []
+        for n in _get_binary_path_from_ipv4_addr(ip):
+            prev = node
+            node = prev.child(n)
+            if node is None:
+                break
+            if node.islast:
+                last_nodes.append(node)
+            if node.prefixlen == ip.prefixlen:
+                last_nodes.append(node)
+                break
+
+        return last_nodes[-1] if last_nodes else None

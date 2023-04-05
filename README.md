@@ -104,3 +104,39 @@ Output:
 10.0.0.0/24
 {'country': 'RU'}
 ```
+
+
+# CIDR tree:
+
+```python
+from ipv4tree.ipv4tree import IPv4Tree, CIDRTree
+
+
+tree = IPv4Tree()
+tree.insert('93.170.0.0/15', info={'asn': 44546})
+tree.insert('93.171.161.0/24', info={'asn': 50685})
+node = tree.supernet('93.171.161.164')
+
+print('IPv4Tree supernet for 93.171.161.164:')
+print(node, node.info['asn'])
+
+
+tree = CIDRTree()
+tree.insert('93.170.0.0/15', info={'asn': 44546})
+tree.insert('93.171.161.0/24', info={'asn': 50685})
+node = tree.supernet('93.171.161.164')
+
+print('CIDRTree supernet for 93.171.161.164:')
+print(node, node.info['asn'])
+```
+
+```
+IPv4Tree supernet for 93.171.161.164:
+93.170.0.0/15 44546
+CIDRTree supernet for 93.171.161.164:
+93.171.161.0/24 50685
+```
+
+So you get supernet with largest prefixlen.
+
+
