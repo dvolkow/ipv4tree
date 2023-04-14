@@ -187,9 +187,9 @@ class IPv4Tree(Collection):
         :return: True if address or network exist in tree
         """
         ip = IPv4Network(ip)
-        intree = ip in self
-        if intree:
+        if ip in self:
             return True
+
         node = self._root
         for n in _get_binary_path_from_ipv4_addr(ip):
             prev = node
@@ -226,8 +226,7 @@ class IPv4Tree(Collection):
         :param kwargs: custom parameters for your nodes.
         """
         ip = IPv4Network(ip)
-        intree = ip in self
-        if intree:
+        if ip in self:
             return
 
         size = ip.num_addresses
@@ -262,6 +261,40 @@ class IPv4Tree(Collection):
                 node.update(-1, -excess)
                 node = node.parent
         else:
+            # new node in last level
+            self._nodes_map[ip] = node
+
+    def fast_insert(self, ip: Union[str, int, IPv4Address, IPv4Network], **kwargs) -> None:
+        """
+        Insert IPv4 address or network in IPv4Tree structure.
+        ATTENTION! Has no updates for size!
+
+        :param ip: IPv4 address or network
+        :param kwargs: custom parameters for your nodes.
+        """
+        ip = IPv4Network(ip)
+        if ip in self:
+            return
+
+        node = self._root
+        was_insert = False
+        for n in _get_binary_path_from_ipv4_addr(ip):
+            prev = node
+            node = prev.child(n)
+            if node is None:
+                node = self._insert_node(prev, n, **kwargs)
+                was_insert = True
+
+            if node.islast:
+                # try insert for subnetwork of exist in tree
+                break
+
+            if node.prefixlen == ip.prefixlen:
+                # try insert for supernetwork?
+                break
+
+        node._islast = True
+        if was_insert:
             # new node in last level
             self._nodes_map[ip] = node
 
@@ -309,8 +342,10 @@ class IPv4Tree(Collection):
                 prefixlens[prefixlen] = 1
             else:
                 prefixlens[prefixlen] += 1
+
             if node.islast:
                 last_nodes += 1
+
         return str(prefixlens) + "\nTotal nodes: {}\nSize: {}" \
                                  "\nLast nodes: {}".format(self._nodes,
                                                            self._root.size,
@@ -342,8 +377,7 @@ class CIDRTree(IPv4Tree):
         :param kwargs: custom parameters for your nodes.
         """
         ip = IPv4Network(ip)
-        intree = ip in self
-        if intree:
+        if ip in self:
             return
 
         size = ip.num_addresses
@@ -377,6 +411,36 @@ class CIDRTree(IPv4Tree):
             # new node in last level
             self._nodes_map[ip] = node
 
+    def fast_insert(self, ip: Union[str, int, IPv4Address, IPv4Network], **kwargs) -> None:
+        """
+        Insert IPv4 address or network in IPv4Tree structure.
+        ATTENTION! Has no updates for size!
+
+        :param ip: IPv4 address or network
+        :param kwargs: custom parameters for your nodes.
+        """
+        ip = IPv4Network(ip)
+        if ip in self:
+            return
+
+        node = self._root
+        was_insert = False
+        for n in _get_binary_path_from_ipv4_addr(ip):
+            prev = node
+            node = prev.child(n)
+            if node is None:
+                node = self._insert_node(prev, n, **kwargs)
+                was_insert = True
+
+            if node.prefixlen == ip.prefixlen:
+                # try insert for supernetwork?
+                break
+
+        node._islast = True
+        if was_insert:
+            # new node in last level
+            self._nodes_map[ip] = node
+
     def supernet(self, ip: Union[str, IPv4Address, IPv4Network]) -> Optional[IPv4TreeNode]:
         """
         Return supernet for custom IPv4 address from IPv4Tree structure.
@@ -394,8 +458,10 @@ class CIDRTree(IPv4Tree):
             node = prev.child(n)
             if node is None:
                 break
+
             if node.islast:
                 last_nodes.append(node)
+
             if node.prefixlen == ip.prefixlen:
                 last_nodes.append(node)
                 break
