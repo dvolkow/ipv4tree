@@ -200,11 +200,47 @@ threads_num = 2 ** N
 print(len(nets), threads_num)
 ```
 
-Second, prepare your trie for multiprocess inserts. Use `fake_insert` method for roots creating:
+Second, your insert task may be similar as this example:
 ```python
 from ipv4tree.ipv4tree import IPv4Tree
+from ipaddress import IPv4Address, IPv4Network
 
+def _insert_task(dct, data, network: IPv4Network, thread_id: int):
+    tree = IPv4Tree()
+    for item in data:
+        if IPv4Address(item) in network:
+            tree.insert(item)
+
+    dct[thread_id] = tree
+```
+
+`dct` is `manager.dict()` object for store your tree.
+
+For example, listing for mutliprocess inserts:
+
+```python
+from multiprocessing import Manager, Process
+
+manager = Manager()
+tree_dict = manager.dict()
+processes = []
+
+for i in range(threads_num):
+    proc = Process(target=_insert_task,
+                   args=(tree_dict, data, nets[i], i,))
+    processes.append(proc)
+    proc.start()
+
+for proc in processes:
+    proc.join()
+```
+
+Merge tries to one tree from result values:
+```python
 tree = IPv4Tree()
-for net in nets:
-    tree.fake_insert(net)
+
+for i in range(threads_num):
+    root = tree_dict[i][nets[i]] # take direct root node from new tree by thread i
+    if root is not None:
+        tree.insert_node(root)
 ```
