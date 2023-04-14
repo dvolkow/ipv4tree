@@ -2,7 +2,7 @@
 
 Prefix (radix-like) tree (trie) for IPv4 addresses manipulations. Allow aggregate prefixes, fast LogN search entries, store additional info in nodes.
 
-![Trie](https://ibb.co/QcwczCt)
+![Trie](https://i.ibb.co/6ZCZV1L/2023-04-14-22-00-34.png)
 
 ## Setup
 
