@@ -1,5 +1,9 @@
 # ipv4tree
 
+Prefix (radix-like) tree (trie) for IPv4 addresses manipulations. Allow aggregate prefixes, fast LogN search entries, store additional info in nodes.
+
+![Trie](https://ibb.co/QcwczCt)
+
 ## Setup
 
 With pip:
@@ -140,3 +144,67 @@ CIDRTree supernet for 93.171.161.164:
 So you get supernet with largest prefixlen.
 
 
+# Utils:
+
+
+1. IPv4 space split by 2^N parts.
+Code:
+```python
+from ipv4tree.utils import ipv4_space_split
+
+print(ipv4_space_split(1))
+print(ipv4_space_split(2))
+print(ipv4_space_split(3))
+```
+
+Output:
+```commandline
+[IPv4Network('0.0.0.0/1'), IPv4Network('128.0.0.0/1')]
+[IPv4Network('0.0.0.0/2'), IPv4Network('64.0.0.0/2'), IPv4Network('128.0.0.0/2'), IPv4Network('192.0.0.0/2')]
+[IPv4Network('0.0.0.0/3'), IPv4Network('32.0.0.0/3'), IPv4Network('64.0.0.0/3'), IPv4Network('96.0.0.0/3'), IPv4Network('128.0.0.0/3'), IPv4Network('160.0.0.0/3'), IPv4Network('192.0.0.0/3'), IPv4Network('224.0.0.0/3')]
+```
+
+2. IPv4 address to binary string as bits conversions:
+```python
+from ipaddress import IPv4Address
+from ipv4tree.utils import _get_binary_path_from_ipv4_addr, _get_ipv4_from_binary_string
+
+ip = IPv4Address('42.42.42.42')
+print(ip)
+ip_str = _get_binary_path_from_ipv4_addr(ip)
+print(ip_str)
+rev_ip = _get_ipv4_from_binary_string(ip_str)
+print(rev_ip)
+```
+
+Output:
+```commandline
+42.42.42.42
+00101010001010100010101000101010
+42.42.42.42
+```
+
+# Multiprocessing:
+
+1. Insert in trie with multiprocess mode.
+
+If you have too much IPv4 prefixes for insert to tree, it may be make with multiprocessing. 
+
+First, get splitted ipv4 space. You must use 2^N processes. For example, `N = 4`.
+```python
+from ipv4tree.utils import ipv4_space_split
+
+N = 4
+nets = ipv4_space_split(N)
+threads_num = 2 ** N
+print(len(nets), threads_num)
+```
+
+Second, prepare your trie for multiprocess inserts. Use `fake_insert` method for roots creating:
+```python
+from ipv4tree.ipv4tree import IPv4Tree
+
+tree = IPv4Tree()
+for net in nets:
+    tree.fake_insert(net)
+```
