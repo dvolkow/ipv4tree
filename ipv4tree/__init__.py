@@ -1,2 +1,2 @@
-VERSION = '0.0.5'
+VERSION = '0.0.6'
 __all__ = ['ipv4tree']
