@@ -184,6 +184,28 @@ Output:
 42.42.42.42
 ```
 
+# Tries arithmetic
+
+You can use operator `+` for merge two tree:
+```python
+from ipv4tree.ipv4tree import IPv4Tree
+
+a, b = IPv4Tree(), IPv4Tree()
+a.insert('42.42.42.0/24')
+b.insert('224.0.0.0/8')
+
+def print_nodes(a: IPv4Tree):
+    for node in a:
+        if node.islast:
+            print(node)
+
+print_nodes(a)
+print_nodes(b)
+
+a += b # equal a = a + b
+print_nodes(a)
+```
+
 # Multiprocessing:
 
 1. Insert in trie with multiprocess mode (see `ipv4tree/multiprocessing.py`).

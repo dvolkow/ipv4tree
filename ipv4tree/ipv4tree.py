@@ -140,6 +140,13 @@ class IPv4Tree(Collection):
         self._nodes += 1
         return node
 
+    def __add__(self, other: 'IPv4Tree'):
+        for node in other:
+            if node.islast:
+                self.insert(str(node))
+
+        return self
+
     def delete(self, ip: Union[str, int, IPv4Address, IPv4Network]) -> None:
         """
         Delete IPv4 address or network from tree

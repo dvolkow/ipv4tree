@@ -55,3 +55,18 @@ print("".join([str(IPv4Address(int('00000001000000010000000100000100', 2))), '/3
 print("".join([str(IPv4Address(int('00000001000000010000000100001000', 2))), '/30']))
 print("".join([str(IPv4Address(int('00000001000000010000000100001100', 2))), '/32']))
 print("".join([str(IPv4Address(int('00000001000000010000000100001101', 2))), '/32']))
+
+from ipv4tree.ipv4tree import IPv4Tree
+
+a, b = IPv4Tree(), IPv4Tree()
+a.insert('42.42.42.0/24')
+b.insert('224.0.0.0/8')
+
+
+def print_nodes(tree: IPv4Tree):
+    for node in tree:
+        if node.islast:
+            print(node)
+
+print_nodes(a)
+print_nodes(b)
