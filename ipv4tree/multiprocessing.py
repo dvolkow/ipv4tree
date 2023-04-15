@@ -11,7 +11,7 @@ def _insert_task(dct: Dict, data: Iterable, network: IPv4Network, thread_id: int
     """
     tree = IPv4Tree()
     for item in data:
-        if IPv4Address(item) in network:
+        if IPv4Network(item).network_address in network:
             tree.insert(item)
 
     dct[thread_id] = tree

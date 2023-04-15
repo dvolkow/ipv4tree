@@ -230,7 +230,7 @@ class IPv4Tree(Collection):
         if ip in self:
             return
 
-        size = ip.num_addresses
+        size = new_node.size
         node = self._root
         self._root.update(-1, size)
         was_insert = False
