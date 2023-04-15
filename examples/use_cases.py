@@ -38,7 +38,7 @@ for node in tree:
     if node.islast:
         print(node)
 
-from ipv4tree.ipv4tree import _get_binary_path_from_ipv4_addr
+from ipv4tree.utils import _get_binary_path_from_ipv4_addr
 
 """
 Distance between lower and upper bound of network:
