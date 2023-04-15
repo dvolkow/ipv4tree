@@ -186,7 +186,7 @@ Output:
 
 # Multiprocessing:
 
-1. Insert in trie with multiprocess mode.
+1. Insert in trie with multiprocess mode (see `ipv4tree/multiprocessing.py`).
 
 If you have too much IPv4 prefixes for insert to tree, it may be make with multiprocessing. 
 
