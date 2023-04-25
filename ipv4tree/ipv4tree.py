@@ -4,6 +4,10 @@ from typing import Union, Optional, Dict
 from ipv4tree.utils import _get_binary_path_from_ipv4_addr
 
 
+def prefixsize(n: int) -> int:
+    return 2 ** (32 - n)
+
+
 class IPv4TreeNode(Iterable):
     """
     Unit for IPv4Tree structure.
@@ -42,6 +46,10 @@ class IPv4TreeNode(Iterable):
     @property
     def prefixlen(self) -> int:
         return self._prefixlen
+
+    @property
+    def prefixsize(self) -> int:
+        return 2 ** (32 - self.prefixlen)
 
     def child(self, key: Union[int, str]) -> Union['IPv4TreeNode', None]:
         return self._children[int(key)]
@@ -98,6 +106,17 @@ class IPv4TreeNode(Iterable):
             s = "".join([s, "0"])
         return int(s, 2)
 
+    def sizeof(self) -> int:
+        if self.islast:
+            return self._size if self._size > 0 else self.prefixsize
+
+        size = 0
+        for child in self._children:
+            if child is not None:
+                size += child.sizeof()
+
+        return size
+
     def __str__(self) -> str:
         if self._prefixlen > 0:
             return "/".join([str(IPv4Address(int(self))),
@@ -147,6 +166,19 @@ class IPv4Tree(Collection):
 
         return self
 
+    def sizeof(self, ip: Union[str, int, IPv4Address, IPv4Network]) -> int:
+        net = IPv4Network(ip)
+        node = self._root
+        for n in _get_binary_path_from_ipv4_addr(net):
+            node = node.child(n)
+            if node is None:
+                return 0
+
+            if node.prefixlen == net.prefixlen:
+                break
+
+        return node.sizeof()
+
     def delete(self, ip: Union[str, int, IPv4Address, IPv4Network]) -> None:
         """
         Delete IPv4 address or network from tree
@@ -156,7 +188,7 @@ class IPv4Tree(Collection):
         if not self.intree(ip):
             raise ValueError('Network {} not in tree'.format(str(net)))
 
-        size = net.num_addresses
+        size = self.sizeof(ip)
         node = self._root
         prev = node
         in_last = False
@@ -169,10 +201,10 @@ class IPv4Tree(Collection):
                 in_last = True
 
             if node is None:
-                node = self._insert_node(prev, n, 0)
+                node = self._insert_node(prev, n, prefixsize(prev.prefixlen + 1))
 
             if inv_node is None:
-                inv_node = self._insert_node(prev, inv_key, 0)
+                inv_node = self._insert_node(prev, inv_key, prefixsize(prev.prefixlen + 1))
                 inv_node._islast = in_last
 
             prev._islast = False
